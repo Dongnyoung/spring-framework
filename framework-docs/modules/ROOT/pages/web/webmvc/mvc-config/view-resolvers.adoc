@@ -10,6 +10,24 @@ default `View` for JSON rendering:
 
 include-code::./WebConfiguration[tag=snippet,indent=0]
 
+[NOTE]
+====
+When using Spring Boot, calling `registry.jsp()` implicitly registers an
+`InternalResourceViewResolver` with a default prefix of `/WEB-INF/` and a suffix
+of `.jsp`. If your JSP files are located under `/WEB-INF/` and use the `.jsp`
+extension, no additional configuration is required.
+
+If you use a different location or extension, override the defaults in
+`application.properties`:
+
+[source,properties]
+----
+spring.mvc.view.prefix=/WEB-INF/views/
+spring.mvc.view.suffix=.jsp
+----
+====
+
+
 Note, however, that FreeMarker, Groovy Markup, and script templates also require
 configuration of the underlying view technology. The following example works with FreeMarker:
 

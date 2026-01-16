@@ -54,7 +54,6 @@ import org.springframework.util.ResourceUtils;
  * @author Stephane Nicoll
  * @since 6.0
  */
-@SuppressWarnings("removal") // components index
 public final class PersistenceManagedTypesScanner {
 
 	private static final String CLASS_RESOURCE_PATTERN = "/**/*.class";
@@ -162,7 +161,7 @@ public final class PersistenceManagedTypesScanner {
 					}
 				}
 				catch (Throwable ex) {
-					throw new PersistenceException("Failed to read candidate component class: " + resource, ex);
+					throw new PersistenceException("Failed to read candidate entity class: " + resource, ex);
 				}
 			}
 		}

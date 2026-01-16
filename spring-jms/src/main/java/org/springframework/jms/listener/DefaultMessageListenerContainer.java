@@ -757,10 +757,8 @@ public class DefaultMessageListenerContainer extends AbstractPollingMessageListe
 				}
 				waitCount++;
 			}
-			// Clear remaining scheduled invokers, possibly left over as paused tasks
-			for (AsyncMessageListenerInvoker scheduledInvoker : this.scheduledInvokers) {
-				scheduledInvoker.clearResources();
-			}
+			// Clear remaining scheduled invokers, possibly left over as paused tasks.
+			clearResourcesInScheduledInvokers();
 			this.scheduledInvokers.clear();
 		}
 		catch (InterruptedException ex) {
@@ -907,6 +905,15 @@ public class DefaultMessageListenerContainer extends AbstractPollingMessageListe
 		if (rescheduleTaskIfNecessary(invoker)) {
 			// This should always be true, since we're only calling this when active.
 			this.scheduledInvokers.add(invoker);
+		}
+	}
+
+	/**
+	 * Clear resources in scheduled invokers, even in case of paused tasks.
+	 */
+	private void clearResourcesInScheduledInvokers() {
+		for (AsyncMessageListenerInvoker scheduledInvoker : this.scheduledInvokers) {
+			scheduledInvoker.clearResources();
 		}
 	}
 
@@ -1078,7 +1085,7 @@ public class DefaultMessageListenerContainer extends AbstractPollingMessageListe
 			}
 		}
 		else {
-			// Recovery during active operation..
+			// Recovery during active operation...
 			if (alreadyRecovered) {
 				logger.debug("Setup of JMS message listener invoker failed - already recovered by other invoker", ex);
 			}
@@ -1427,6 +1434,7 @@ public class DefaultMessageListenerContainer extends AbstractPollingMessageListe
 			if (activeInvokerCount == 0) {
 				if (!isRunning()) {
 					// Proactively release shared Connection when stopped.
+					clearResourcesInScheduledInvokers();
 					releaseSharedConnection();
 				}
 				if (stopCallback != null) {
@@ -1507,7 +1515,7 @@ public class DefaultMessageListenerContainer extends AbstractPollingMessageListe
 		/**
 		 * Apply the back-off time once. In a regular scenario, the back-off is only applied if we
 		 * failed to recover with the broker. This additional wait period avoids a burst retry
-		 * scenario when the broker is actually up but something else if failing (i.e. listener
+		 * scenario when the broker is actually up but something else is failing (i.e. listener
 		 * specific).
 		 */
 		private void waitBeforeRecoveryAttempt() {

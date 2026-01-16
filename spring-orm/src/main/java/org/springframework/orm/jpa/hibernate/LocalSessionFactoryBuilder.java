@@ -284,6 +284,7 @@ public class LocalSessionFactoryBuilder extends Configuration {
 	 * @see #addPackage
 	 * @see #scanPackages
 	 */
+	@Override
 	public LocalSessionFactoryBuilder addPackages(String... annotatedPackages) {
 		for (String annotatedPackage : annotatedPackages) {
 			addPackage(annotatedPackage);
@@ -331,7 +332,7 @@ public class LocalSessionFactoryBuilder extends Configuration {
 						}
 					}
 					catch (Throwable ex) {
-						throw new MappingException("Failed to read candidate component class: " + resource, ex);
+						throw new MappingException("Failed to read candidate entity class: " + resource, ex);
 					}
 				}
 			}

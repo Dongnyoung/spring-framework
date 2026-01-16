@@ -211,10 +211,13 @@ public class SimpleAsyncTaskExecutor extends CustomizableThreadCreator
 
 	/**
 	 * Specify whether to reject tasks when the concurrency limit has been reached,
-	 * throwing {@link TaskRejectedException} on any further submission attempts.
+	 * throwing {@link TaskRejectedException} (which extends the common
+	 * {@link java.util.concurrent.RejectedExecutionException})
+	 * on any further execution attempts.
 	 * <p>The default is {@code false}, blocking the caller until the submission can
 	 * be accepted. Switch this to {@code true} for immediate rejection instead.
 	 * @since 6.2.6
+	 * @see #setConcurrencyLimit
 	 */
 	public void setRejectTasksWhenLimitReached(boolean rejectTasksWhenLimitReached) {
 		this.rejectTasksWhenLimitReached = rejectTasksWhenLimitReached;
@@ -307,7 +310,15 @@ public class SimpleAsyncTaskExecutor extends CustomizableThreadCreator
 		Runnable taskToUse = (this.taskDecorator != null ? this.taskDecorator.decorate(task) : task);
 		if (isThrottleActive() && startTimeout > TIMEOUT_IMMEDIATE) {
 			this.concurrencyThrottle.beforeAccess();
-			doExecute(new TaskTrackingRunnable(taskToUse));
+			try {
+				doExecute(new TaskTrackingRunnable(taskToUse));
+			}
+			catch (Throwable ex) {
+				// Release concurrency permit if thread creation fails
+				this.concurrencyThrottle.afterAccess();
+				throw new TaskRejectedException(
+						"Failed to start execution thread for task: " + task, ex);
+			}
 		}
 		else if (this.activeThreads != null) {
 			doExecute(new TaskTrackingRunnable(taskToUse));

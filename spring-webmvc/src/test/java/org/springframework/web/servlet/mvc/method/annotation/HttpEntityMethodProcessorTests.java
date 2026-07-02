@@ -36,6 +36,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -65,7 +66,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Rossen Stoyanchev
  */
 @SuppressWarnings("unused")
-public class HttpEntityMethodProcessorTests {
+class HttpEntityMethodProcessorTests {
 
 	private MethodParameter paramList;
 
@@ -116,7 +117,7 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test  // SPR-12861
-	public void resolveArgumentWithEmptyBody() throws Exception {
+	void resolveArgumentWithEmptyBody() throws Exception {
 		this.servletRequest.setContent(new byte[0]);
 		this.servletRequest.setContentType("application/json");
 
@@ -129,6 +130,26 @@ public class HttpEntityMethodProcessorTests {
 
 		assertThat(result).isNotNull();
 		assertThat(result.getBody()).isNull();
+	}
+
+	@Test // gh-36298
+	@SuppressWarnings("unchecked")
+	void shouldResolveEntityWithMutatedHeaders() throws Exception {
+		servletRequest.setMethod("POST");
+		servletRequest.addParameter("project", "spring%20framework");
+		servletRequest.addHeader("Content-Length", "project=spring%20framework".length());
+		servletRequest.setContentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new ByteArrayHttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
+
+		Method method = getClass().getDeclaredMethod("resolveAsByteArray", RequestEntity.class);
+		MethodParameter requestEntity = new MethodParameter(method, 0);
+		HttpEntity<byte[]> result = (HttpEntity<byte[]>) processor.resolveArgument(requestEntity,
+				this.mavContainer, this.webRequest, this.binderFactory);
+
+		assertThat(result.getBody().length).isEqualTo(result.getHeaders().getContentLength());
 	}
 
 	@Test
@@ -175,7 +196,7 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test  // SPR-12811
-	public void jacksonTypeInfoList() throws Exception {
+	void jacksonTypeInfoList() throws Exception {
 		Method method = JacksonController.class.getMethod("handleList");
 		HandlerMethod handlerMethod = new HandlerMethod(new JacksonController(), method);
 		MethodParameter methodReturnType = handlerMethod.getReturnType();
@@ -193,7 +214,7 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test  // SPR-13423
-	public void handleReturnValueCharSequence() throws Exception {
+	void handleReturnValueCharSequence() throws Exception {
 		List<HttpMessageConverter<?>>converters = new ArrayList<>();
 		converters.add(new ByteArrayHttpMessageConverter());
 		converters.add(new StringHttpMessageConverter());
@@ -210,7 +231,7 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test  // SPR-13423
-	public void handleReturnValueWithETagAndETagFilter() throws Exception {
+	void handleReturnValueWithETagAndETagFilter() throws Exception {
 		String eTagValue = "\"deadb33f8badf00d\"";
 		String content = "body";
 
@@ -244,7 +265,7 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test  // gh-24539
-	public void handleReturnValueWithMalformedAcceptHeader() throws Exception {
+	void handleReturnValueWithMalformedAcceptHeader() throws Exception {
 		webRequest.getNativeRequest(MockHttpServletRequest.class).addHeader("Accept", "null");
 
 		List<HttpMessageConverter<?>>converters = new ArrayList<>();
@@ -269,6 +290,9 @@ public class HttpEntityMethodProcessorTests {
 
 	private ResponseEntity<CharSequence> handle() {
 		return null;
+	}
+
+	private void resolveAsByteArray(RequestEntity<byte[]> request) {
 	}
 
 
